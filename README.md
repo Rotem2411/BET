@@ -1,7 +1,17 @@
 # SocioculturalThemeDetection: Detecting Sociocultural Themes Through Latent and Explicit Knowledge
 
 ## Overview
-_SocioculturalThemeDetection_ is an NLP-based pipeline designed to analyze personal narratives in financial aid applications. The system extracts themes, computes sentence similarity, and visualizes emotional insights to support decision-making in scholarship evaluations. By leveraging machine learning and natural language processing, the project provides a structured approach to understanding applicants' experiences and emotional expressions.
+_SocioculturalThemeDetection_ presents a method for analyzing large-scale textual data by identifying themes, emotional patterns, and topic distributions within documents. While the method has been tested using a dataset of scholarship applications, its utility extends far beyond this specific use case.
+
+Researchers and analysts working with extensive text corpora can leverage this approach to gain insights into various aspects of textual expression, such as:
+
+- **Social Science Research:** Understanding discourse patterns in interviews, survey responses, or open-ended questionnaires.
+- **Historical and Political Analysis:** Investigating changes in rhetoric and sentiment over time in political speeches, policy documents, or historical records.
+- **Media and Communication Studies:** Analyzing trends in journalistic writing, news reports, or social media discussions.
+- **Corporate and Customer Feedback Analysis:** Examining employee reviews, product feedback, or consumer complaints to extract recurring themes and sentiment shifts.
+- **Healthcare and Psychological Studies:** Analyzing patient narratives, therapy session transcripts, or mental health forums for patterns in expression and sentiment.
+
+The method provides a framework for researchers to explore not just the content of texts but also the manner in which ideas are expressed, offering a nuanced view of underlying themes and emotional tones.
 
 This repository contains the code and data for the paper
 **Detecting Sociocultural Themes Through Latent and Explicit Knowledge**.
