@@ -6,7 +6,7 @@ _SocioculturalThemeDetection_ is an NLP-based pipeline designed to analyze perso
 This repository contains the code and data for the paper
 **Detecting Sociocultural Themes Through Latent and Explicit Knowledge**.
 
-<img src="Method.png" alt="Method" width="700"> 
+<img src="Output/Method.png" alt="Method" width="700"> 
 <span style="font-size:16px;"><b>Figure 1:</b> An overview of our method</span> 
 
 
