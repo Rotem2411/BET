@@ -14,7 +14,7 @@ Researchers and analysts working with extensive text corpora can leverage this a
 The method provides a framework for researchers to explore not just the content of texts but also the manner in which ideas are expressed, offering a nuanced view of underlying themes and emotional tones.
 
 This repository contains the code and data for the paper
-**Detecting Sociocultural Themes Through Latent and Explicit Knowledge**.
+**Detecting Behavioral and Emotional Themes Through Latent and Explicit Knowledge**.
 
 <img src="Output/Method.png" alt="Method" width="700"> 
 <span style="font-size:16px;"><b>Figure 1:</b> Methodological Framework for Behavioral and Emotional Theme Detection (BET).</span> 
@@ -85,16 +85,20 @@ This script will:
 ## Key Visualizations
 
 ### Emotion Semantic Score Distribution
-<img src="Semantic_Score_by_Topic.png" alt="Emotion Semantic Score" width="700"> 
+<img src="Output/Semantic_Score_by_Topic.png" alt="Emotion Semantic Score" width="700"> 
 <span style="font-size:12px;"><b>Figure 2:</b> Emotion Semantic Score Distribution over all the topics </span> 
 
 ### Heatmap of Themes vs. Topics
-<img src="heatmap.png" alt="Heatmap" width="700"> 
-<span style="font-size:12px;"><b>Figure 3:</b> Heatmap for presenting the mean semantic score for topics and themes</span> 
+<img src="Output/heatmap.png" alt="Heatmap" width="700"> 
+<span style="font-size:12px;"><b>Figure 3:</b> Topic-Theme Semantic Similarity: A sample of the mean score heatmap for the dataset of financial aid applications.</span> 
 
 ### Emotion Trends Over Time
-<img src="emotions_over_time.png" alt="Emotion Trends" width="700"> 
-<span style="font-size:12px;"><b>Figure 4:</b> Emotional themes for the topic of youth movements over time based on the scholarship application dataset</span> 
+<img src="Output/emotions_over_time.png" alt="Emotion Trends" width="700"> 
+<span style="font-size:12px;"><b>Figure 4:</b> Thematic evolution of the Youth Movements topic over time. The left y-axis indicates the mean cosine similarity score for each theme depicted in the line plot, while the right y-axis denotes the proportion of documents clustered to the Youth Movements topic for each year depicted by the gray bars.</span> 
+
+### Behavioral and Emotional Theme Analysis
+<img src="Output/radar_plot.png" alt="radar plot" width="700"> 
+<span style="font-size:12px;"><b>Figure 5:</b> Maximum semantic similarity scores between embeddings of sentences from four selected student profile documents from the synthetic student profile dataset and embeddings of English emotional theme keywords</span> 
 
 ---
 
