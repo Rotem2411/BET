@@ -1,7 +1,7 @@
-# SocioculturalThemeDetection: Detecting Sociocultural Themes Through Latent and Explicit Knowledge
+# BET: Detecting Behavioral and Emotional Themes Through Latent and Explicit Knowledge
 
 ## Overview
-_SocioculturalThemeDetection_ presents a method for analyzing large-scale textual data by identifying themes, emotional patterns, and topic distributions within documents. While the method has been tested using a dataset of scholarship applications, its utility extends far beyond this specific use case.
+_BET_ presents a method for analyzing large-scale textual data by identifying themes, emotional patterns, and topic distributions within documents. While the method has been tested using a dataset of scholarship applications, its utility extends far beyond this specific use case.
 
 Researchers and analysts working with extensive text corpora can leverage this approach to gain insights into various aspects of textual expression, such as:
 
@@ -17,7 +17,7 @@ This repository contains the code and data for the paper
 **Detecting Sociocultural Themes Through Latent and Explicit Knowledge**.
 
 <img src="Output/Method.png" alt="Method" width="700"> 
-<span style="font-size:16px;"><b>Figure 1:</b> An overview of our method</span> 
+<span style="font-size:16px;"><b>Figure 1:</b> Methodological Framework for Behavioral and Emotional Theme Detection (BET).</span> 
 
 
 
