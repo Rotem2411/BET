@@ -1,0 +1,14 @@
+pandas
+numpy
+torch
+transformers
+sentence-transformers
+bertopic
+hdbscan
+nltk
+plotly
+matplotlib
+scikit-learn
+umap-learn
+pyarrow
+fastparquet
