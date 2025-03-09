@@ -1,3 +1,4 @@
+import compareModels
 from category import generate_category_embeddings
 from Sentence import compute_sentence_similarity, generate_sentence_embeddings
 from Topics import analyze_topics_in_data
@@ -109,3 +110,4 @@ def aggregate_document_emotions(df_merged):
 
 if __name__ == '__main__':
     run_pipeline()
+    #compareModels.run()
