@@ -118,8 +118,5 @@ Potential enhancements include:
 ## License
 MIT License.
 
-## Citation
-If you use this code or data, please cite our paper:
-
 ```bash
 ```
