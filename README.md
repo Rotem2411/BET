@@ -34,7 +34,6 @@ To install the necessary dependencies, run the following command:
 
 ```bash
 pip install -r requirements.txt
-pip install pandas numpy torch sentence-transformers transformers bertopic hdbscan umap-learn plotly fastparquet
 ```
 
 For GPU support:
@@ -118,9 +117,3 @@ Potential enhancements include:
 
 ## License
 MIT License.
-
-## Citation
-If you use this code or data, please cite our paper:
-
-```bash
-```
