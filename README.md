@@ -117,6 +117,3 @@ Potential enhancements include:
 
 ## License
 MIT License.
-
-```bash
-```
