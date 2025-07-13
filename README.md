@@ -64,7 +64,7 @@ python main.py
 
 This script will:
 
-1. Load the dataset from `20 Newsgroups` for English or `finaid_applications_2011_2024.xlsx` for Hebrew.
+1. Load the dataset from `Synthetic Student Profile Dataset` for English or `finaid_applications_2011_2024.xlsx` for Hebrew.
 
 2. Compute sentence embeddings and similarity scores
 
