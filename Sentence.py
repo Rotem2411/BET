@@ -118,13 +118,25 @@ def generate_sentence_embeddings(df, model=None, tokenizer=None, device='cpu'):
 
         rows = []
         if lang == 'hebrew':
+            # For Hebrew documents we rely on the AlephBERT tokenizer to split sentences.
+            # Each sentence gets a unique sentence_id within its document.
             for _, document in df.iterrows():
                 for j, sentence in enumerate(doc2sent(document['text'], alephbert_tokenizer)):
-                    rows.append({'document_id': document['document_id'], 'sentence_id': j, 'sentence': sentence})
+                    rows.append({
+                        'document_id': document['document_id'],
+                        'sentence_id': j,
+                        'sentence': sentence
+                    })
         else:
+            # For English documents use NLTK's sent_tokenize to split on punctuation.
+            # Use the 'document_id' column to ensure consistency with import_dataset.
             for _, document in df.iterrows():
                 for j, sentence in enumerate(sent_tokenize(document['text'])):
-                    rows.append({'document_id': document['id'], 'sentence_id': j, 'sentence': sentence})
+                    rows.append({
+                        'document_id': document['document_id'],
+                        'sentence_id': j,
+                        'sentence': sentence
+                    })
         df_sentences = pd.DataFrame(rows)
         print(f'num of sentences:', len(df_sentences))
         df_sentences.to_parquet('sentences_metadata.parquet', index=False, compression='snappy')
