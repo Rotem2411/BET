@@ -2,14 +2,19 @@ from category import generate_category_embeddings
 from Sentence import compute_sentence_similarity, generate_sentence_embeddings
 from Topics import analyze_topics_in_data, run_bertopic_experiments, run_lda_experiments, evaluate_bertopic_experiments_results
 from figures import generate_visual_insights, visualize_performance_models, visualize_embedding_clusters, plot_metrics
+import os
 import torch
 import pandas as pd
+import argparse
 from sentence_transformers import SentenceTransformer
 from transformers import BertModel, BertTokenizerFast
 
 def run_pipeline(
     topic_model: str = "bertopic_hdbscan",
-    sentence_model: str | None = None,
+    # Default to the English sentence model so that the pipeline processes the
+    # English dataset when run without explicit arguments. If you wish to run
+    # the Hebrew pipeline, pass sentence_model=None when calling run_pipeline().
+    sentence_model: str | None = "all-MiniLM-L6-v2",
     dataset_name: str | None = None,
     text_col: str | None = None,
     id_col: str | None = None,
@@ -51,6 +56,11 @@ def run_pipeline(
         language is inferred from the sentence_model selection.
     """
     try:
+        # Ensure the output directory exists. This environment variable can be set
+        # externally to control where generated files are stored. Default is 'output'.
+        output_dir_env = os.getenv('OUTPUT_DIR', 'output')
+        os.environ['OUTPUT_DIR'] = output_dir_env
+        os.makedirs(output_dir_env, exist_ok=True)
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         tokenizer = None
         # Determine which model and dataset to use. If a custom dataset is provided,
@@ -130,9 +140,8 @@ def run_pipeline(
                     "sentence-transformers/all-MiniLM-L6-v2"
                 )
                 df_original = import_dataset(
-                    "df_docs_eng.csv",
-                    text_col="sentence",
-                    id_col="document_id",
+                    "student_profiles.jsonl",
+                    text_col="Story"
                 )
                 lang = "english"
             elif sentence_model is None:
@@ -205,18 +214,52 @@ def run_pipeline(
         print(f"Error during main: {e}")
 
 def import_dataset(dataset_name, text_col, id_col=None, year_col=None):
-    if dataset_name.endswith('.csv'):
+    """
+    Load a dataset in CSV, Excel, or JSONL/JSON format and return a DataFrame with
+    standardised column names.
+
+    Parameters
+    ----------
+    dataset_name : str
+        Path to the dataset file. Supported extensions are `.csv`, `.xls`,
+        `.xlsx`, `.json`, and `.jsonl`.
+    text_col : str
+        The name of the column containing the free text to analyse. For JSON
+        formats, the key is case sensitive.
+    id_col : str, optional
+        Name of the column containing a unique identifier for each document.
+        If not provided or absent, a sequential ID will be assigned.
+    year_col : str, optional
+        Name of the column containing a year associated with each document. If
+        not present, the year will be set to None.
+
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame with columns `document_id`, `year`, and `text`.
+    """
+    lower_name = dataset_name.lower()
+    if lower_name.endswith('.csv'):
         df = pd.read_csv(dataset_name)
-    else:
+    elif lower_name.endswith(('.xls', '.xlsx')):
         df = pd.read_excel(dataset_name)
+    elif lower_name.endswith(('.jsonl', '.json')):
+        try:
+            df = pd.read_json(dataset_name, lines=True)
+        except ValueError:
+            df = pd.read_json(dataset_name)
+    else:
+        raise ValueError(
+            "Unsupported file type. Please provide a CSV, Excel, or JSON/JSONL file."
+        )
     if text_col not in df.columns:
         raise ValueError(f"Text column '{text_col}' not found in the dataset.")
     df = df.rename(columns={text_col: 'text'})
-    if id_col in df.columns:
+    if id_col and id_col in df.columns:
         df = df.rename(columns={id_col: 'document_id'})
     elif 'document_id' not in df.columns:
         df['document_id'] = range(1, len(df) + 1)
-    if year_col in df.columns:
+    if year_col and year_col in df.columns:
         df = df.rename(columns={year_col: 'year'})
     elif 'year' not in df.columns:
         df['year'] = None
@@ -225,39 +268,77 @@ def import_dataset(dataset_name, text_col, id_col=None, year_col=None):
     return df_out
 
 def integrate_topic_and_similarity_data(df_similarity, df_topic):
+    """
+    Merge the similarity and topic assignments for each sentence and persist the results.
+
+    The merged file is saved under the directory specified by the OUTPUT_DIR environment
+    variable (default ``output``). This function will create the directory if it does not
+    already exist.
+
+    Parameters
+    ----------
+    df_similarity : pd.DataFrame
+        DataFrame containing similarity scores and emotion columns for each sentence.
+    df_topic : pd.DataFrame
+        DataFrame containing topic assignments for each document.
+
+    Returns
+    -------
+    pd.DataFrame
+        Combined DataFrame with similarity scores, topic assignments, and other metadata.
+    """
+    output_dir = os.getenv('OUTPUT_DIR', 'output')
+    os.makedirs(output_dir, exist_ok=True)
     print("Start integrate_topic_and_similarity_data")
     merged_df = pd.merge(df_similarity, df_topic, on='document_id', how='inner')
     # Reordering the columns
-    columns_order = ['document_id', 'sentence_id', 'Topic_number', 'year'] + [col for col in merged_df.columns if
-                                                                              col not in ['year', 'Topic_number',
-                                                                                          'document_id',
-                                                                                          'sentence_id']]
+    columns_order = ['document_id', 'sentence_id', 'Topic_number', 'year'] + [
+        col for col in merged_df.columns
+        if col not in ['year', 'Topic_number', 'document_id', 'sentence_id']]
     merged_df = merged_df[columns_order]
-    merged_df.to_csv('merged_data.csv', index=False)
-    merged_df.to_parquet('merged_data.parquet', index=False)
+    merged_df.to_csv(os.path.join(output_dir, 'merged_data.csv'), index=False)
+    merged_df.to_parquet(os.path.join(output_dir, 'merged_data.parquet'), index=False)
     return merged_df
 
 def aggregate_document_emotions(df_merged):
+    """
+    Aggregate emotion scores at the document level and persist the results.
+
+    For each document, this function computes the maximum score per emotion across all
+    sentences and calculates an overall average emotion score. The aggregated results
+    are saved to ``documents.csv`` in the output directory.
+
+    Parameters
+    ----------
+    df_merged : pd.DataFrame
+        DataFrame returned by ``integrate_topic_and_similarity_data`` containing
+        similarity scores, top emotions, and topic assignments.
+
+    Returns
+    -------
+    Tuple[pd.DataFrame, List[str]]
+        A tuple where the first element is the aggregated document DataFrame and the
+        second element is the list of emotion column names used for aggregation.
+    """
     print('start aggregate_document_emotions')
-    # Drop non-emotion columns to work only with emotion scores
-    emotion_columns = [col for col in df_merged.columns if
-                       col not in ['document_id', 'sentence_id', 'Topic_number', 'year', 'top_emotions',
-                                   'top_emotion_scores']]
-    # Group by 'document_id' and find the max value of each emotion
+    # Identify emotion columns by excluding metadata columns
+    emotion_columns = [
+        col for col in df_merged.columns
+        if col not in ['document_id', 'sentence_id', 'Topic_number', 'year', 'top_emotions', 'top_emotion_scores']]
+    # Compute the maximum value of each emotion per document
     max_emotion_per_doc = df_merged.groupby('document_id')[emotion_columns].max().reset_index()
-    # Add a new column for the average emotion score per document
+    # Compute an average emotion score for each document
     max_emotion_per_doc['Average_Emotions_Score'] = max_emotion_per_doc[emotion_columns].mean(axis=1)
-    # Extract the year and topic_number columns from the merged data
+    # Merge with the document-level metadata (year and Topic_number)
     df_docs = df_merged[['document_id', 'year', 'Topic_number']].drop_duplicates(subset=['document_id'])
-    # Merge with the max_emotion_per_doc dataframe
     df_docs = pd.merge(df_docs, max_emotion_per_doc, on='document_id', how='left')
-    df_docs.to_csv('documents.csv', index=False)
+    output_dir = os.getenv('OUTPUT_DIR', 'output')
+    os.makedirs(output_dir, exist_ok=True)
+    df_docs.to_csv(os.path.join(output_dir, 'documents.csv'), index=False)
     print('aggregate_document_emotions ends')
     return df_docs, emotion_columns
 
 if __name__ == '__main__':
-    import argparse
-
     parser = argparse.ArgumentParser(
         description=(
             "Run the BET pipeline on a Hebrew or English corpus. By default "

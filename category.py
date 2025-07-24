@@ -2,18 +2,27 @@ import pandas as pd
 import torch
 import numpy as np
 from hepsylex import Lexicons
+import os
+OUTPUT_DIR = os.getenv('OUTPUT_DIR', 'output')
 
 def generate_category_embeddings(model, tokenizer=None, device='cpu'):
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    embeddings_path = os.path.join(OUTPUT_DIR, 'category_embeddings.npy')
+    metadata_path = os.path.join(OUTPUT_DIR, 'category_metadata.parquet')
     try:
-        embeddings = np.load('category_embeddings.npy')
-        df_category = pd.read_parquet('category_metadata.parquet')
+        embeddings = np.load(embeddings_path)
+        df_category = pd.read_parquet(metadata_path)
         print("Load category metadata and embeddings")
-    except:
+    except Exception:
         print("starting category_embeddings")
-        if model.tokenizer.name_or_path == 'sentence-transformers/all-MiniLM-L6-v2':
-            lang='english'
-        else:
-            lang='hebrew'
+        # Determine language based on the model name when possible
+        try:
+            if model and hasattr(model, 'tokenizer') and getattr(model.tokenizer, 'name_or_path', '') == 'sentence-transformers/all-MiniLM-L6-v2':
+                lang = 'english'
+            else:
+                lang = 'hebrew'
+        except Exception:
+            lang = 'hebrew'
         category_dict = build_category_dictionary(lang)
         embeddings_categories = []
         index_category = {}
@@ -25,9 +34,10 @@ def generate_category_embeddings(model, tokenizer=None, device='cpu'):
         df_category = pd.DataFrame(embeddings_categories,
                                    columns=['category_index', 'word_index', 'word', 'embedding'])
         embeddings = np.stack(df_category['embedding'].values)
-        np.save('category_embeddings.npy', embeddings)
+        # Save to the output directory
+        np.save(embeddings_path, embeddings)
         df_category.drop('embedding', axis=1, inplace=True)
-        df_category.to_parquet('category_metadata.parquet', index=False, compression='snappy')
+        df_category.to_parquet(metadata_path, index=False, compression='snappy')
         print("Saved category metadata as Parquet and embeddings as Numpy array")
     return df_category, embeddings
 

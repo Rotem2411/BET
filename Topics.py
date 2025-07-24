@@ -8,9 +8,10 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.cluster import AgglomerativeClustering
 from gensim.models.coherencemodel import CoherenceModel
 from gensim.corpora import Dictionary
-from gensim.models import LdaModel, Phrases
-from gensim.models.phrases import Phraser
+from gensim.models import LdaModel
 from collections import Counter
+import os
+OUTPUT_DIR = os.getenv('OUTPUT_DIR', 'output')
 
 def clean_text(text, lang="hebrew", return_tokens=False):
     if not isinstance(text, str):
@@ -35,9 +36,10 @@ def preprocess_data(df, columns, lang="hebrew"):
 def identify_document_topics(documents, sentence_model, cluster_model):
     print('start identify_document_topics')
     try:
-        topic_model = BERTopic.load(f'{cluster_model}_model')
+        model_path = os.path.join(OUTPUT_DIR, f'{cluster_model}_model')
+        topic_model = BERTopic.load(model_path)
         print('Load Bertopic_model successfully')
-    except:
+    except Exception:
         bertopic_args = get_bertopic_init_args(sentence_model)
         if cluster_model=='bertopic_hdbscan':
             print('Setup HDBSCAN model')
@@ -82,9 +84,9 @@ def identify_document_topics(documents, sentence_model, cluster_model):
         probs_df.to_excel('topics_probabilities_each_document.xlsx')
 
     topics_info = topic_model.get_topic_info()
-    topics_info.to_excel(f"Topics_by_Docs_Info.xlsx", index=False)
-
-    topic_model.save(f'{cluster_model}_model')
+    topics_info.to_excel(os.path.join(OUTPUT_DIR, "Topics_by_Docs_Info.xlsx"), index=False)
+    model_path = os.path.join(OUTPUT_DIR, f'{cluster_model}_model')
+    topic_model.save(model_path)
     print('BERTopic saved')
     return topic_model
 
@@ -157,8 +159,9 @@ def evaluate_bertopic_experiments_results(df, cluster_model, lang, param_values)
 
     metrics_df = pd.DataFrame(results)
     output_name = f"{cluster_model}_evaluation_metrics.csv"
-    metrics_df.to_csv(output_name, index=False)
-    print(f"Saved evaluation metrics to '{output_name}'")
+    output_path = os.path.join(OUTPUT_DIR, output_name)
+    metrics_df.to_csv(output_path, index=False)
+    print(f"Saved evaluation metrics to '{output_path}'")
     return metrics_df
 
 def run_bertopic_experiments(df, sentence_model, cluster_model, lang):
@@ -190,9 +193,10 @@ def run_bertopic_experiments(df, sentence_model, cluster_model, lang):
             )
             topics, probs = topic_model.fit_transform(documents)
             topics_info = topic_model.get_topic_info()
-            topics_info.to_excel(f"Topics_by_Docs_Info_{cluster_model}_nr_topics{nr}.xlsx",
-                                 index=False)
-            topic_model.save(f"Bertopic_model_{nr}")
+            topics_info_path = os.path.join(OUTPUT_DIR, f"Topics_by_Docs_Info_{cluster_model}_nr_topics{nr}.xlsx")
+            topics_info.to_excel(topics_info_path, index=False)
+            model_path = os.path.join(OUTPUT_DIR, f"Bertopic_model_{nr}")
+            topic_model.save(model_path)
 
     if cluster_model == 'bertopic_Agglomerative':
         distance_thresholds = [3,4,5,6,7,8,9,10,11,12]
@@ -212,8 +216,10 @@ def run_bertopic_experiments(df, sentence_model, cluster_model, lang):
             )
             topics, _ = topic_model.fit_transform(documents)
             topics_info = topic_model.get_topic_info()
-            topics_info.to_excel(f"Topics_by_Docs_Info_{cluster_model}_distance_threshold{distance_threshold}.xlsx", index=False)
-            topic_model.save(f"Bertopic_model_{distance_threshold}")
+            topics_info_path = os.path.join(OUTPUT_DIR, f"Topics_by_Docs_Info_{cluster_model}_distance_threshold{distance_threshold}.xlsx")
+            topics_info.to_excel(topics_info_path, index=False)
+            model_path = os.path.join(OUTPUT_DIR, f"Bertopic_model_{distance_threshold}")
+            topic_model.save(model_path)
 
     print("run_bertopic_experiments completed and all models/info files saved.")
     return
@@ -259,37 +265,38 @@ def run_lda_topic_modeling(tokenized_docs, num_topics=10):
 def analyze_topics_in_data(df, lang, sentence_model, cluster_model):
     if cluster_model.lower() == "lda":
         try:
-            df_topic = pd.read_csv('finaid_applications_Topics_LDA.csv')
-            print('Load finaid_applications_Topics_LDA.csv')
-        except:
+            lda_csv_path = os.path.join(OUTPUT_DIR, 'Topics_by_Docs_Info_LDA.csv')
+            df_topic = pd.read_csv(lda_csv_path)
+            print(f'Load {lda_csv_path}')
+        except Exception:
             print("start analyze_topics_in_data (LDA)")
             df_docs = preprocess_data(df, ['text'], lang)
             tokenized_docs = [doc.split() for doc in df_docs['text_cleaned']]
-            bigram_docs, trigram_docs = make_bigrams_trigrams(tokenized_docs)
-            lda_model, corpus, dictionary = run_lda_topic_modeling(bigram_docs, num_topics=10)
+            lda_model, corpus, dictionary = run_lda_topic_modeling(tokenized_docs, num_topics=10)
             topics = get_main_topics(corpus, lda_model)
             df_topic = df_docs.drop(columns=['text', 'text_cleaned'])
             df_topic['Topic_number'] = topics
             df_topic.rename(columns={'id': 'document_id'}, inplace=True)
-            df_topic.to_csv('finaid_applications_Topics_LDA.csv', index=False)
+            df_topic.to_csv(lda_csv_path, index=False)
             df_topic_info = get_lda_doc_topic_info(topics, lda_model, num_words=10)
-            df_topic_info.to_excel("Topics_by_Docs_Info_LDA.xlsx", index=False)
-            lda_model.save('lda_model_topics.model')
-            dictionary.save('lda_dictionary.dict')
+            df_topic_info.to_excel(os.path.join(OUTPUT_DIR, "Topics_by_Docs_Info_LDA.xlsx"), index=False)
+            lda_model.save(os.path.join(OUTPUT_DIR, 'lda_model_topics.model'))
+            dictionary.save(os.path.join(OUTPUT_DIR, 'lda_dictionary.dict'))
             print("analyze_topics_in_data (LDA) complete")
         return df_topic
     else:
         try:
-            df_topic = pd.read_csv('finaid_applications_Topics.csv')
-            print('Load finaid_applications_Topics.csv')
-        except:
+            bert_csv_path = os.path.join(OUTPUT_DIR, 'Topics_by_Docs_Info_Bertopic.csv')
+            df_topic = pd.read_csv(bert_csv_path)
+            print(f'Load {bert_csv_path}')
+        except Exception:
             print("start analyze_topics_in_data (BERTopic)")
-            df_docs = preprocess_data(df, ['text'])
+            df_docs = preprocess_data(df, ['text'], lang)
             TopicModel = identify_document_topics(df_docs['text_cleaned'], sentence_model, cluster_model)
             df_topic = df_docs.drop(columns=['text', 'text_cleaned'])
             df_topic['Topic_number'] = TopicModel.topics_
             df_topic.rename(columns={'id': 'document_id'}, inplace=True)
-            df_topic.to_csv('finaid_applications_Topics.csv', index=False)
+            df_topic.to_csv(bert_csv_path, index=False)
             print("analyze_topics_in_data (BERTopic) complete")
         return df_topic
 

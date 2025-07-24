@@ -7,6 +7,8 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 from transformers import BertTokenizerFast
 from nltk.tokenize import sent_tokenize
+import os
+OUTPUT_DIR = os.getenv('OUTPUT_DIR', 'output')
 
 def doc2sent(text, alephbert_tokenizer):
     max_token_limit = 512  # Maximum tokens allowed by the model
@@ -52,23 +54,27 @@ def merge_similarity_scores(df, df_similarity, category_dict):
 
 def compute_sentence_similarity(lang, batch_size=100000):
     print("Starting compute_sentence_similarity")
-    df_category = pd.read_parquet('category_metadata.parquet')
-    df_sentences = pd.read_parquet('sentences_metadata.parquet')
-    category_embeddings = np.load('category_embeddings.npy')
-    sentence_embeddings = np.load('sentences_embeddings.npy')
+    # Load metadata and embeddings from the output directory
+    category_metadata_path = os.path.join(OUTPUT_DIR, 'category_metadata.parquet')
+    sentences_metadata_path = os.path.join(OUTPUT_DIR, 'sentences_metadata.parquet')
+    category_embeddings_path = os.path.join(OUTPUT_DIR, 'category_embeddings.npy')
+    sentences_embeddings_path = os.path.join(OUTPUT_DIR, 'sentences_embeddings.npy')
+    df_category = pd.read_parquet(category_metadata_path)
+    df_sentences = pd.read_parquet(sentences_metadata_path)
+    category_embeddings = np.load(category_embeddings_path)
+    sentence_embeddings = np.load(sentences_embeddings_path)
     df_category['embedding'] = list(category_embeddings)
     df_sentences['embedding'] = list(sentence_embeddings)
     category_dict = build_category_dictionary(lang)
     index_category = {idx: cat for idx, cat in enumerate(category_dict)}
     try:
-        df_similarity = pd.read_parquet('sentence_similarity.parquet')
+        df_similarity = pd.read_parquet(os.path.join(OUTPUT_DIR, 'sentence_similarity.parquet'))
         print("Load sentence_similarity.parquet")
-    except:
+    except Exception:
         try:
-            df_similarity = pd.read_parquet('similarity.parquet')
+            df_similarity = pd.read_parquet(os.path.join(OUTPUT_DIR, 'similarity.parquet'))
             print("Load similarity.parquet")
-
-        except:
+        except Exception:
             # Multithreaded computation
             results = {}
             with ThreadPoolExecutor(max_workers=4) as executor:
@@ -84,7 +90,7 @@ def compute_sentence_similarity(lang, batch_size=100000):
                     if col_name and similarities is not None:
                         results[col_name] = similarities
             df_similarity = pd.DataFrame(results)
-            df_similarity.to_parquet('similarity.parquet', index=False, compression='snappy')
+            df_similarity.to_parquet(os.path.join(OUTPUT_DIR, 'similarity.parquet'), index=False, compression='snappy')
             print("Saved similarity results as Parquet.")
 
         num_batches = len(df_sentences) // batch_size + (1 if len(df_sentences) % batch_size != 0 else 0)
@@ -94,21 +100,24 @@ def compute_sentence_similarity(lang, batch_size=100000):
             df_sentences_batch = df_sentences.iloc[start_idx:end_idx]
             df_similarity_batch = df_similarity.iloc[start_idx:end_idx]
             result_df = merge_similarity_scores(df_sentences_batch, df_similarity_batch, category_dict)
-            result_file = f"sentence_similarity_batch_{batch_num + 1}.parquet"
+            result_file = os.path.join(OUTPUT_DIR, f"sentence_similarity_batch_{batch_num + 1}.parquet")
             result_df.to_parquet(result_file)
             print(f"Batch {batch_num + 1} saved to {result_file}")
-        df_similarity = merge_similarity_batches("sentence_similarity.parquet")
+        # After processing batches, merge them
+        df_similarity = merge_similarity_batches('sentence_similarity.parquet')
         df_similarity = add_top_emotions_to_dataset(df_similarity)
-        df_similarity.to_parquet('sentence_similarity.parquet')
+        df_similarity.to_parquet(os.path.join(OUTPUT_DIR, 'sentence_similarity.parquet'))
     print("compute_sentence_similarity ends")
     return df_similarity
 
 def generate_sentence_embeddings(df, model=None, tokenizer=None, device='cpu'):
+    sentences_metadata_path = os.path.join(OUTPUT_DIR, 'sentences_metadata.parquet')
+    sentences_embeddings_path = os.path.join(OUTPUT_DIR, 'sentences_embeddings.npy')
     try:
-        df_sentences = pd.read_parquet('sentences_metadata.parquet')
-        embeddings = np.load('sentences_embeddings.npy')
+        df_sentences = pd.read_parquet(sentences_metadata_path)
+        embeddings = np.load(sentences_embeddings_path)
         print("Load sentences metadata and embeddings")
-    except:
+    except Exception:
         print("starting generate_sentence_embeddings")
         if model == 'twitter-xlm-roberta-base-sentiment':
             lang='english'
@@ -139,23 +148,28 @@ def generate_sentence_embeddings(df, model=None, tokenizer=None, device='cpu'):
                     })
         df_sentences = pd.DataFrame(rows)
         print(f'num of sentences:', len(df_sentences))
-        df_sentences.to_parquet('sentences_metadata.parquet', index=False, compression='snappy')
+        df_sentences.to_parquet(sentences_metadata_path, index=False, compression='snappy')
         embeddings = []
         for sentence in df_sentences['sentence']:
             embeddings.append(get_sentence_embedding(sentence, model, tokenizer, device))
-        np.save('sentences_embeddings.npy', np.array(embeddings))
+        np.save(sentences_embeddings_path, np.array(embeddings))
         print("Saved sentence metadata as Parquet and embeddings as Numpy array.\n")
         print("generate_sentence_embeddings ends")
     return df_sentences, embeddings
 
 def merge_similarity_batches(output_filename="sentence_similarity.parquet"):
-    batch_files = glob.glob("sentence_similarity_batch_*.parquet")
+    """Merge all batch files in the output directory into a single parquet file."""
+    batch_files = glob.glob(os.path.join(OUTPUT_DIR, "sentence_similarity_batch_*.parquet"))
     if not batch_files:
         print("No batch files found!")
         return
     combined_df = pd.concat([pd.read_parquet(file) for file in batch_files])
-    combined_df.to_parquet(output_filename)
-    print(f"Combined results saved to {output_filename}")
+    if os.path.isabs(output_filename) or os.path.dirname(output_filename):
+        output_path = output_filename
+    else:
+        output_path = os.path.join(OUTPUT_DIR, output_filename)
+    combined_df.to_parquet(output_path)
+    print(f"Combined results saved to {output_path}")
     return combined_df
 
 def add_top_emotions_to_dataset(df):

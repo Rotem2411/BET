@@ -6,6 +6,7 @@ import seaborn as sns
 import os
 from sklearn.manifold import TSNE
 import umap
+OUTPUT_DIR = os.getenv('OUTPUT_DIR', 'output')
 
 def generate_visual_insights(df):
     print('start generate_visual_insights')
@@ -124,20 +125,15 @@ def visualize_embedding_clusters(df, embeddings, method='umap', n_components=3):
                          color='category_index', hover_data=['word'],
                          title=f'Word Embeddings ({method.upper()} 2D)')
 
-    # Save the plot as an HTML file
-    output_file = f"word_embeddings_{method}_{n_components}D.html"
+    output_file = os.path.join(OUTPUT_DIR, f"word_embeddings_{method}_{n_components}D.html")
     fig.write_html(output_file)
     print(f"Plot saved to {output_file}")
 
-def visualize_performance_models(file_path="summary_evaluation_metrics.csv", save_figures=True, output_dir="figures"):
+def visualize_performance_models(file_path="summary_evaluation_metrics.csv", save_figures=True):
     df = pd.read_csv(file_path)
     df["num_outliers"] = pd.to_numeric(df["num_outliers"], errors="coerce")
     df["distance_threshold"] = pd.to_numeric(df["distance_threshold"], errors="coerce")
     df["nr_topics"] = pd.to_numeric(df["nr_topics"], errors="coerce")
-
-    if save_figures:
-        os.makedirs(output_dir, exist_ok=True)
-
     topic_models = df["Topic Model"].unique()
 
     for topic_model in topic_models:
@@ -148,7 +144,6 @@ def visualize_performance_models(file_path="summary_evaluation_metrics.csv", sav
             else f"{row['Topic Model']}_{row['Clustering Model']}_{row['sentence_model']}", axis=1)
 
         unique_models = model_df["Model_Name"].unique()
-
         for model_name in unique_models:
             variant_df = model_df[model_df["Model_Name"] == model_name]
             clustering_model = variant_df["Clustering Model"].iloc[0]
@@ -185,7 +180,7 @@ def visualize_performance_models(file_path="summary_evaluation_metrics.csv", sav
             plt.tight_layout()
             if save_figures:
                 safe_name = model_name.replace("/", "_")
-                plt.savefig(f"{output_dir}/{safe_name}_metrics.png", dpi=300)
+                plt.savefig(f"{OUTPUT_DIR}/{safe_name}_metrics.png", dpi=300)
             plt.show()
 
         # Combined comparison plot(s)
@@ -207,7 +202,7 @@ def visualize_performance_models(file_path="summary_evaluation_metrics.csv", sav
 
             plt.tight_layout(rect=[0, 0.03, 1, 0.95])
             if save_figures:
-                plt.savefig(f"{output_dir}/{topic_model}_comparison.png", dpi=300)
+                plt.savefig(f"{OUTPUT_DIR}/{topic_model}_comparison.png", dpi=300)
             plt.show()
 
         else:
@@ -234,5 +229,5 @@ def visualize_performance_models(file_path="summary_evaluation_metrics.csv", sav
 
                 plt.tight_layout(rect=[0, 0.03, 1, 0.95])
                 if save_figures:
-                    plt.savefig(f"{output_dir}/{topic_model}_{cluster_type}_comparison.png", dpi=300)
+                    plt.savefig(f"{OUTPUT_DIR}/{topic_model}_{cluster_type}_comparison.png", dpi=300)
                 plt.show()

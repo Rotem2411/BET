@@ -9,9 +9,11 @@ hdbscan
 nltk
 plotly
 matplotlib
+seaborn
 scikit-learn
 umap-learn
 pyarrow
 fastparquet
 hepsylex
 gensim
+openpyxl
