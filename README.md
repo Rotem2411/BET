@@ -64,7 +64,7 @@ python main.py
 
 This script will:
 
-1. Load the dataset from `Synthetic Student Profile Dataset` (from Kaggle) for English or `finaid_applications_2011_2024.xlsx` for Hebrew.
+1. Load the dataset from [Synthetic Student Profile Dataset](https://www.kaggle.com/datasets/anthonytherrien/synthetic-student-profiles-dataset) (from Kaggle) for English or `finaid_applications_2011_2024.xlsx` for Hebrew.
 
 2. Compute sentence embeddings and similarity scores
 
