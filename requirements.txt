@@ -1,5 +1,6 @@
+
 pandas
-numpy
+numpy==1.26.3
 torch
 transformers
 sentence-transformers
@@ -12,3 +13,5 @@ scikit-learn
 umap-learn
 pyarrow
 fastparquet
+hepsylex
+gensim

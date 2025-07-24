@@ -16,7 +16,7 @@ The method provides a framework for researchers to explore not just the content 
 This repository contains the code and data for the paper
 **Detecting Behavioral and Emotional Themes Through Latent and Explicit Knowledge**.
 
-<img src="Output/Method.png" alt="Method" width="700"> 
+<img src="Output/Methods.png" alt="Method" width="700"> 
 <span style="font-size:16px;"><b>Figure 1:</b> Methodological Framework for Behavioral and Emotional Theme Detection (BET).</span> 
 
 
@@ -64,7 +64,7 @@ python main.py
 
 This script will:
 
-1. Load the dataset from `20 Newsgroups` for English or `finaid_applications_2011_2024.xlsx` for Hebrew.
+1. Load the dataset from `Synthetic Student Profile Dataset` (from Kaggle) for English or `finaid_applications_2011_2024.xlsx` for Hebrew.
 
 2. Compute sentence embeddings and similarity scores
 
